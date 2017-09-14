@@ -1,21 +1,6 @@
 # Coyhot
 
-**TODO: Add description**
+Simple GenServer template for launching recuring tasks
+based on the work of Saša Jurić and his article :
 
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `coyhot` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:coyhot, "~> 0.1.0"}
-  ]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/coyhot](https://hexdocs.pm/coyhot).
-
+http://theerlangelist.com/article/beyond_taskasync
