@@ -3,18 +3,18 @@ defmodule Coyhot do
   @doc """
   determine how much time is necessary between tasks
   """
-  @callback ticker() :: integer
+  @callback ticker(informations :: term) :: integer
 
 
   @doc """
   task function name
   """
-  @callback handle_task(arg :: term) :: :noreply
+  @callback handle_task(data :: term, informations :: term) :: :noreply
 
   @doc """
   function that fetch data to process for each tasks
   """
-  @callback tasks_data() :: List
+  @callback tasks_data(informations :: term) :: List
 
   defmacro __using__(_) do
     quote location: :keep do
@@ -22,24 +22,19 @@ defmodule Coyhot do
 
       use GenServer
 
-      def handle_task(_) do
+      def handle_task(_, _) do
         raise "attempt to call handle_task(data) but clause was not provided"
       end
 
-      def tasks_data() do
+      def tasks_data(_) do
         raise "attempt to call tasks_data() but clause was not provided"
       end
 
-      def ticker() do
+      def ticker(_) do
         raise "attempt to call ticker() but clause was not provided"
       end
 
-      def tasks_done(result) do
-        :noop
-      end
-
-
-      def init([task_supervisor, use_ticker, timeout]) do
+      def init([task_supervisor, use_ticker, timeout, informations]) do
         state =
           %{
             timeout_ref: make_ref(),
@@ -47,7 +42,8 @@ defmodule Coyhot do
             tasks: [],
             timeout: timeout,
             timer: nil,
-            use_ticker: use_ticker
+            use_ticker: use_ticker,
+            informations: informations
           }
           |> schedule_tasks
 
@@ -92,23 +88,23 @@ defmodule Coyhot do
         |> start_ticking()
       end
 
-      defp start_tasks(%{task_supervisor: supervisor} = state) do
-        tasks = tasks_data()
-               |> Enum.map(&start_task(supervisor, &1))
+      defp start_tasks(%{task_supervisor: supervisor, informations: informations} = state) do
+        tasks = tasks_data(informations)
+               |> Enum.map(&start_task(supervisor, &1, informations))
                |> Enum.map(fn(task) -> task.ref end)
         %{state | tasks: tasks}
       end
 
-      defp start_task(task_supervisor, data) do
+      defp start_task(task_supervisor, data, informations) do
         Task.Supervisor.async_nolink(
           task_supervisor, fn() ->
-            handle_task(data)
+            handle_task(data, informations)
           end
         )
       end
 
-      defp start_ticking(%{use_ticker: true} = state) do
-        next_tick = ticker()
+      defp start_ticking(%{use_ticker: true, informations: informations} = state) do
+        next_tick = ticker(informations)
         Process.send_after(self(), :ticker, next_tick)
         state
       end
@@ -143,7 +139,7 @@ defmodule Coyhot do
         %{state | timer: nil}
       end
 
-      defoverridable [handle_task: 1, tasks_data: 0, ticker: 0]
+      defoverridable [handle_task: 2, tasks_data: 1, ticker: 1]
     end
   end
 end

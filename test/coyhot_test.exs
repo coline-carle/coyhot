@@ -32,15 +32,15 @@ defmodule CoyhotTest do
     @behaviour Coyhot
 
     def start_link(task_supervisor) do
-      GenServer.start_link(__MODULE__, [task_supervisor, false, 5000], name: SimpleCoyhot)
+      GenServer.start_link(__MODULE__, [task_supervisor, false, 5000, "meow: "], name: SimpleCoyhot)
     end
 
-    def tasks_data do
+    def tasks_data(_) do
       ["task A", "task B"]
     end
 
-    def handle_task(data) do
-      GenRelay.send_message(data)
+    def handle_task(data, informations) do
+      GenRelay.send_message(informations <> data)
     end
   end
 
@@ -49,11 +49,11 @@ defmodule CoyhotTest do
     {:ok, _gen_relay } = GenRelay.start_link(self())
     {:ok, _coyhot } = SimpleCoyhot.start_link(task_supervisor)
 
-    assert_receive {:message, "task A"}
-    assert_receive {:message, "task B"}
+    assert_receive {:message, "meow: task A"}
+    assert_receive {:message, "meow: task B"}
 
-    assert_receive {:message, "task A"}
-    assert_receive {:message, "task B"}
+    assert_receive {:message, "meow: task A"}
+    assert_receive {:message, "meow: task B"}
   end
 
   defmodule TickingCoyhot do
@@ -63,19 +63,19 @@ defmodule CoyhotTest do
     @behaviour Coyhot
 
     def start_link(task_supervisor) do
-      GenServer.start_link(__MODULE__, [task_supervisor, true, 5000], name: SimpleCoyhot)
+      GenServer.start_link(__MODULE__, [task_supervisor, true, 5000, nil], name: SimpleCoyhot)
     end
 
-    def tasks_data do
+    def tasks_data(_) do
       ["Task A", "Task B"]
     end
 
-    def ticker() do
+    def ticker(_) do
       GenRelay.send_message("tick")
       20
     end
 
-    def handle_task(data) do
+    def handle_task(data, _) do
       GenRelay.send_message(data)
     end
   end
@@ -102,14 +102,14 @@ defmodule CoyhotTest do
     @behaviour Coyhot
 
     def start_link(task_supervisor) do
-      GenServer.start_link(__MODULE__, [task_supervisor, false, 10], name:  __MODULE__)
+      GenServer.start_link(__MODULE__, [task_supervisor, false, 10, nil], name:  __MODULE__)
     end
 
-    def tasks_data do
+    def tasks_data(_) do
       ["slow task"]
     end
 
-    def handle_task(data) do
+    def handle_task(data, _) do
       GenRelay.send_message(data)
       :timer.sleep(50000)
     end
@@ -130,14 +130,14 @@ defmodule CoyhotTest do
     @behaviour Coyhot
 
     def start_link(task_supervisor) do
-      GenServer.start_link(__MODULE__, [task_supervisor, false, 5000], name:  __MODULE__)
+      GenServer.start_link(__MODULE__, [task_supervisor, false, 5000, nil], name:  __MODULE__)
     end
 
-    def tasks_data do
+    def tasks_data(_) do
       ["before apocalypse"]
     end
 
-    def handle_task(data) do
+    def handle_task(data, _) do
       GenRelay.send_message(data)
       raise "end of the world"
     end
