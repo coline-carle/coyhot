@@ -25,37 +25,6 @@ defmodule CoyhotTest do
     end
   end
 
-  defmodule SimpleCoyhot do
-    use Coyhot
-    require Logger
-
-    @behaviour Coyhot
-
-    def start_link(task_supervisor) do
-      GenServer.start_link(__MODULE__, [task_supervisor, false, "meow: "], name: SimpleCoyhot)
-    end
-
-    def tasks_data(_) do
-      ["task A", "task B"]
-    end
-
-    def handle_task(data, informations) do
-      GenRelay.send_message(informations <> data)
-    end
-  end
-
-  test "test coyhot when not using a ticker" do
-    {:ok, task_supervisor } = Task.Supervisor.start_link()
-    {:ok, _gen_relay } = GenRelay.start_link(self())
-    {:ok, _coyhot } = SimpleCoyhot.start_link(task_supervisor)
-
-    assert_receive {:message, "meow: task A"}
-    assert_receive {:message, "meow: task B"}
-
-    assert_receive {:message, "meow: task A"}
-    assert_receive {:message, "meow: task B"}
-  end
-
   defmodule TickingCoyhot do
     use Coyhot
     require Logger
@@ -63,7 +32,7 @@ defmodule CoyhotTest do
     @behaviour Coyhot
 
     def start_link(task_supervisor) do
-      GenServer.start_link(__MODULE__, [task_supervisor, true, nil], name: SimpleCoyhot)
+      GenServer.start_link(__MODULE__, [task_supervisor, nil], name: SimpleCoyhot)
     end
 
     def tasks_data(_) do
@@ -102,7 +71,7 @@ defmodule CoyhotTest do
     @behaviour Coyhot
 
     def start_link(task_supervisor) do
-      GenServer.start_link(__MODULE__, [task_supervisor, true, nil], name:  __MODULE__)
+      GenServer.start_link(__MODULE__, [task_supervisor, nil], name:  __MODULE__)
     end
 
     def ticker(_) do
@@ -139,7 +108,11 @@ defmodule CoyhotTest do
     @behaviour Coyhot
 
     def start_link(task_supervisor) do
-      GenServer.start_link(__MODULE__, [task_supervisor, false, nil], name:  __MODULE__)
+      GenServer.start_link(__MODULE__, [task_supervisor, nil], name:  __MODULE__)
+    end
+
+    def ticker(_) do
+      5
     end
 
     def tasks_data(_) do

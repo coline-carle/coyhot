@@ -34,12 +34,11 @@ defmodule Coyhot do
         raise "attempt to call ticker() but clause was not provided"
       end
 
-      def init([task_supervisor, use_ticker, informations]) do
+      def init([task_supervisor, informations]) do
         state =
           %{
             task_supervisor: task_supervisor,
             tasks: [],
-            use_ticker: use_ticker,
             has_ticked: false,
             informations: informations
           }
@@ -91,7 +90,7 @@ defmodule Coyhot do
         )
       end
 
-      defp start_ticking(%{use_ticker: true, informations: informations} = state) do
+      defp start_ticking(%{informations: informations} = state) do
         next_tick = ticker(informations)
         Process.send_after(self(), :ticker, next_tick)
         %{state | has_ticked: false}
@@ -102,11 +101,8 @@ defmodule Coyhot do
         %{state | tasks: tasks |> List.delete(task_ref)}
       end
 
-      defp schedule_if_done(%{tasks: [], use_ticker: false} = state) do
-        state |> schedule_tasks
-      end
 
-      defp schedule_if_done(%{tasks: [], use_ticker: true, has_ticked: true} = state) do
+      defp schedule_if_done(%{tasks: [], has_ticked: true} = state) do
         state |> schedule_tasks
       end
 
