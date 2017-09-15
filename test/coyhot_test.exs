@@ -89,6 +89,44 @@ defmodule CoyhotTest do
     end
   end
 
+  defmodule EmptyCoyhot do
+    use Coyhot
+    require Logger
+
+    @behaviour Coyhot
+
+    def start_link(task_supervisor) do
+      GenServer.start_link(__MODULE__, [task_supervisor, nil], name:  __MODULE__)
+    end
+
+    def ticker(_) do
+      GenRelay.send_message("tick")
+      10
+    end
+
+    def tasks_data(_) do
+      GenRelay.send_message("fetch data")
+      []
+    end
+
+    def handle_task(data, _) do
+      GenRelay.send_message(data)
+      :timer.sleep(15)
+    end
+  end
+
+  test "test coyhot when task list is empty" do
+    {:ok, task_supervisor } = Task.Supervisor.start_link()
+    {:ok, _gen_relay } = GenRelay.start_link(self())
+    {:ok, _coyhot } = EmptyCoyhot.start_link(task_supervisor)
+
+    assert_receive {:message, "fetch data"}
+    assert_receive {:message, "tick"}
+
+    assert_receive {:message, "fetch data"}
+    assert_receive {:message, "tick"}
+  end
+
   test "test coyhot when task take longer than tick" do
     {:ok, task_supervisor } = Task.Supervisor.start_link()
     {:ok, _gen_relay } = GenRelay.start_link(self())
