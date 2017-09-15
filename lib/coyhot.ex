@@ -100,7 +100,7 @@ defmodule Coyhot do
       defp start_ticking(%{use_ticker: true, informations: informations} = state) do
         next_tick = ticker(informations)
         Process.send_after(self(), :ticker, next_tick)
-        %{state | has_ticked: true}
+        %{state | has_ticked: false}
       end
       defp start_ticking(state), do: state
 
