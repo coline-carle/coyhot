@@ -58,15 +58,9 @@ defmodule Coyhot do
         {:noreply, state}
       end
 
-      def handle_info(:ticker, %{tasks: []} = state) do
-        state =
-          state
-          |> schedule_tasks
-        {:noreply, state}
-      end
-
       def handle_info(:ticker, state) do
         state = %{state | has_ticked: true}
+                |> schedule_if_done
         {:noreply, state}
       end
 
