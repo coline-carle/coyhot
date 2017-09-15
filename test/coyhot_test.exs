@@ -32,7 +32,7 @@ defmodule CoyhotTest do
     @behaviour Coyhot
 
     def start_link(task_supervisor) do
-      GenServer.start_link(__MODULE__, [task_supervisor, false, 5000, "meow: "], name: SimpleCoyhot)
+      GenServer.start_link(__MODULE__, [task_supervisor, false, "meow: "], name: SimpleCoyhot)
     end
 
     def tasks_data(_) do
@@ -63,7 +63,7 @@ defmodule CoyhotTest do
     @behaviour Coyhot
 
     def start_link(task_supervisor) do
-      GenServer.start_link(__MODULE__, [task_supervisor, true, 5000, nil], name: SimpleCoyhot)
+      GenServer.start_link(__MODULE__, [task_supervisor, true, nil], name: SimpleCoyhot)
     end
 
     def tasks_data(_) do
@@ -102,7 +102,12 @@ defmodule CoyhotTest do
     @behaviour Coyhot
 
     def start_link(task_supervisor) do
-      GenServer.start_link(__MODULE__, [task_supervisor, false, 10, nil], name:  __MODULE__)
+      GenServer.start_link(__MODULE__, [task_supervisor, true, nil], name:  __MODULE__)
+    end
+
+    def ticker(_) do
+      GenRelay.send_message("tick")
+      10
     end
 
     def tasks_data(_) do
@@ -111,15 +116,19 @@ defmodule CoyhotTest do
 
     def handle_task(data, _) do
       GenRelay.send_message(data)
-      :timer.sleep(50000)
+      :timer.sleep(15)
     end
   end
 
-  test "test coyhot when task take too long" do
+  test "test coyhot when task take longer than tick" do
     {:ok, task_supervisor } = Task.Supervisor.start_link()
     {:ok, _gen_relay } = GenRelay.start_link(self())
     {:ok, _coyhot } = SlowCoyhot.start_link(task_supervisor)
+
+    assert_receive {:message, "tick"}
     assert_receive {:message, "slow task"}
+
+    assert_receive {:message, "tick"}
     assert_receive {:message, "slow task"}
   end
 
@@ -130,7 +139,7 @@ defmodule CoyhotTest do
     @behaviour Coyhot
 
     def start_link(task_supervisor) do
-      GenServer.start_link(__MODULE__, [task_supervisor, false, 5000, nil], name:  __MODULE__)
+      GenServer.start_link(__MODULE__, [task_supervisor, false, nil], name:  __MODULE__)
     end
 
     def tasks_data(_) do

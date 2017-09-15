@@ -34,26 +34,19 @@ defmodule Coyhot do
         raise "attempt to call ticker() but clause was not provided"
       end
 
-      def init([task_supervisor, use_ticker, timeout, informations]) do
+      def init([task_supervisor, use_ticker, informations]) do
         state =
           %{
-            timeout_ref: make_ref(),
             task_supervisor: task_supervisor,
             tasks: [],
-            timeout: timeout,
             timer: nil,
             use_ticker: use_ticker,
+            has_ticked: false,
             informations: informations
           }
           |> schedule_tasks
 
         {:ok, state}
-      end
-
-      def handle_info({:timeout, timeout_ref}, %{timeout_ref: timeout_ref} = state) do
-        %{state | timer: nil}
-        |> schedule_tasks
-        {:noreply, state}
       end
 
       def handle_info({:DOWN, mref, _, _pid, _reason}, %{tasks: tasks} = state) do
@@ -66,25 +59,27 @@ defmodule Coyhot do
         {:noreply, state}
       end
 
-      def handle_info(:ticker, state) do
+      def handle_info(:ticker, %{tasks: []} = state) do
         state =
           state
-          |> cancel_timer
           |> schedule_tasks
+        {:noreply, state}
+      end
+
+      def handle_info(:ticker, state) do
+        state = %{state | has_ticked: true}
         {:noreply, state}
       end
 
       def handle_task_finished(state, ref) do
         state
         |> remove_task(ref)
-        |> cancel_timer_if_done
         |> schedule_if_done
       end
 
       defp schedule_tasks(state) do
         state
         |> start_tasks()
-        |> start_timer()
         |> start_ticking()
       end
 
@@ -106,14 +101,9 @@ defmodule Coyhot do
       defp start_ticking(%{use_ticker: true, informations: informations} = state) do
         next_tick = ticker(informations)
         Process.send_after(self(), :ticker, next_tick)
-        state
+        %{state | has_ticked: true}
       end
       defp start_ticking(state), do: state
-
-      defp setup_timer(%{timeout: :inifniy} = state), do: state
-      defp start_timer(%{timeout_ref: timeout_ref, timeout: timeout} = state) do
-        %{state | timer: Process.send_after(self(), {:timeout, timeout_ref}, timeout)}
-      end
 
       defp remove_task(%{tasks: tasks} = state, task_ref) do
         %{state | tasks: tasks |> List.delete(task_ref)}
@@ -122,22 +112,12 @@ defmodule Coyhot do
       defp schedule_if_done(%{tasks: [], use_ticker: false} = state) do
         state |> schedule_tasks
       end
+
+      defp schedule_if_done(%{tasks: [], use_ticker: true, has_ticked: true} = state) do
+        state |> schedule_tasks
+      end
+
       defp schedule_if_done(state), do: state
-
-      defp cancel_timer_if_done(%{tasks: []} = state) do
-        state |> cancel_timer
-      end
-      defp cancel_timer_if_done(state), do: state
-
-      defp cancel_timer(%{timer: nil} = state), do: state
-      defp cancel_timer(%{timer: timer, timeout_ref: timeout_ref} = state) do
-        :erlang.cancel_timer(timer)
-        receive do
-          {:timeout, ^timeout_ref} -> :ok
-        after 0 -> :ok
-        end
-        %{state | timer: nil}
-      end
 
       defoverridable [handle_task: 2, tasks_data: 1, ticker: 1]
     end
