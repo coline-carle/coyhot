@@ -1,0 +1,54 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: wowsweetlie/elixir:1.5.1-2
+        environment:
+          MIX_ENV: test
+    steps:
+      - checkout
+
+      - restore_cache:
+          name: Restore Mix deps cache
+          keys:
+            - mix-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
+            - mix-cache-{{ .Branch }}
+            - mix-cache
+
+      - restore_cache:
+          name: Restore Mix deps build cache
+          keys:
+            - mix-build-{{ .Branch }}
+            - mix-build
+
+      - run: mix deps.get
+
+      - save_cache:
+          key: mix-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
+          paths:
+            - deps
+
+      - save_cache:
+          key: mix-cache-{{ .Branch }}
+          paths:
+            - deps
+
+      - save_cache:
+          key: mix-cache
+          paths:
+            - deps
+
+      - run: mix deps.compile
+      - run: mix compile
+
+      - save_cache:
+          key: mix-build-{{ .Branch }}
+          paths:
+            - _build
+
+      - save_cache:
+          key: mix-build
+          paths:
+            - _build
+
+      - run: mix test
