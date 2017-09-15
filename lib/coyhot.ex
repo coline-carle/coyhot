@@ -39,7 +39,6 @@ defmodule Coyhot do
           %{
             task_supervisor: task_supervisor,
             tasks: [],
-            timer: nil,
             use_ticker: use_ticker,
             has_ticked: false,
             informations: informations
