@@ -72,8 +72,8 @@ defmodule Coyhot do
 
       defp schedule_tasks(state) do
         state
-        |> start_tasks()
         |> start_ticking()
+        |> start_tasks()
       end
 
       defp start_tasks(%{task_supervisor: supervisor, informations: informations} = state) do
